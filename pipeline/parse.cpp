@@ -13,6 +13,7 @@
 #include <sstream>
 using namespace std;
 #include "parse.h"
+#include <stdlib.h>
 //read float from input stream
 float getTokenAsFloat (string inString, int whichToken)
 {

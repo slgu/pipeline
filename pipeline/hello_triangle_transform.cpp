@@ -23,7 +23,8 @@ std::string shader_dir = "/Users/slgu1/Dropbox/graduate_courses@CU/cg/pipeline/p
 typedef amath::vec4  point4;
 typedef amath::vec4  color4;
 
-float theta = 0.0;  // rotation around the Y (up) axis
+float ytheta = 0.0;  // rotation around the Y (up) axis
+float xtheta = 0.0; //rotation arround the X
 float posx = 0.0;   // translation along X
 float posy = 0.0;   // translation along Y
 
@@ -177,7 +178,7 @@ void display( void )
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
     
     // based on where the mouse has moved to, construct a transformation matrix:
-    ctm = Translate(posx*.01,posy*.01,0.)* RotateY(theta); 
+    ctm = Translate(posx*.01,posy*.01,0.)* RotateY(ytheta) * RotateX(xtheta);
 
     // now build transform all the vertices and put them in the points array,
     // and their colors in the colors array:
@@ -205,14 +206,22 @@ void mouse_move_rotate (int x, int y)
 {
     
     static int lastx = 0;// keep track of where the mouse was last:
-    
+    static int lasty = 0;//keep track of y
     int amntX = x - lastx; 
     if (amntX != 0) {
-        theta +=  amntX;
-        if (theta > 360.0 ) theta -= 360.0;
-        if (theta < 0.0 ) theta += 360.0;
+        ytheta +=  amntX;
+        if (ytheta > 360.0 ) ytheta -= 360.0;
+        if (ytheta < 0.0 ) ytheta += 360.0;
         
         lastx = x;
+    }
+    int amntY = y - lasty;
+    if (amntY != 0) {
+        xtheta +=  amntY;
+        if (xtheta > 360.0 ) xtheta -= 360.0;
+        if (xtheta < 0.0 ) xtheta += 360.0;
+        
+        lasty = y;
     }
 
     // force the display routine to be called as soon as possible:
@@ -254,7 +263,8 @@ void mykey(unsigned char key, int mousex, int mousey)
     if (key =='r') {
         posx = 0;
         posy = 0;
-        theta = 0;
+        xtheta = 0;
+        ytheta = 0;
         glutPostRedisplay();
     }
 }
@@ -268,7 +278,11 @@ int main(int argc, char** argv)
     Parser parser;
     std::vector <int> tris;
     std::vector <float> verts;
-    parser.parse_obj_file("/Users/slgu1/Desktop/fandisk.obj", tris, verts);
+    if (argc != 2) {
+        std::cout << "usage: ./render filename.obj" << std::endl;
+        return 1;
+    }
+    parser.parse_obj_file(argv[1], tris, verts);
     //set tris and verts to vertices
     for (int i = 0;  i < tris.size(); i += 3) {
         int idxa = tris[i];
