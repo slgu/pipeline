@@ -88,6 +88,7 @@ void update_viewer() {
     viewtrans = LookAt(viewer, vec4(0, 0, 0, 0), up);
     glUniformMatrix4fv(loc4, 1, GL_TRUE, viewtrans);
 }
+
 // initialization: set up a Vertex Array Object (VAO) and then
 void init()
 {
@@ -233,6 +234,10 @@ void mouse_move_translate (int x, int y)
     static int lasty = 0;  // keep track of where the mouse was last:
     camera.lon -= (x - lastx);
     camera.lat += (y - lasty);
+    if (camera.lat >= 85)
+        camera.lat = 85;
+    if (camera.lat <= -85)
+        camera.lat = -85;
     viewer = camera.toVec();
     glUniform4fv(loc6, 1, viewer);
     update_viewer();
@@ -258,14 +263,17 @@ void mykey(unsigned char key, int mousex, int mousey)
         glutPostRedisplay();
     }
     else if (key == 'x') {
+        if (camera.r >= 50)
+            return;
         camera.r += 1;
-        std::cout << camera.r << std::endl;
         viewer = camera.toVec();
         glUniform4fv(loc6, 1, viewer);
         update_viewer();
         glutPostRedisplay();
     }
     else if (key == 'z') {
+        if (camera.r <= 2)
+            return;
         camera.r -= 1;
         viewer = camera.toVec();
         glUniform4fv(loc6, 1, viewer);

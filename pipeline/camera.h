@@ -18,8 +18,8 @@ public:
     float lon;
     void init() {
         r = 5;
-        lat = 180;
-        lon = 180;
+        lat = 0;
+        lon = 0;
     }
     Camera() {
         init();
