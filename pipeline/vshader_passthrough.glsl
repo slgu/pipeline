@@ -5,30 +5,43 @@
 // "vPosition", one for each vertex.
 //
 // on mac you may have to say: "attribute vec4 vPosition;" instead of this:
-#ifdef linux
-in vec4 vPosition;
-in vec4 vColor;
-#else
+//the position
 attribute vec4 vPosition;
-attribute vec4 vColor;
-#endif
-// we are also going to be getting color values, per-vertex, from the main
-// program running on the cpu (and that are then stored in the VBO on the
-// card. this color, called "vColor", is just going to be passed through 
-// to the fragment shader, which will intrpolate its value per-fragment
-// amongst the 3 vertex colors on the triangle that fragment is a part of.
-//
-// on mac you may have to say: "attribute vec4 vColor;" instead of this:
 
-// we are going to be outputting a single 4-vector, called color, which
-// may be different for each vertex.
-// the fragment shader will be expecting these values, and interpolate
-// them according to the distance of the fragment from the vertices
-//
-// on mac you may have to say: "varying vec4 color;" instead of this:
+// viewer's position, for lighting calculations
+vec4 viewer = vec4(0.0, 0.0, -1.0, 0.0);
+// light & material definitions, again for lighting calculations:
+vec4 light_position = vec4(0.0, 0.0, -1.0, 0.0);
+vec4 light_ambient = vec4(0.2, 0.2, 0.2, 1.0);
+vec4 light_diffuse = vec4(1.0, 1.0, 1.0, 1.0);
+vec4 light_specular = vec4(1.0, 1.0, 1.0, 1.0);
+
+vec4 material_ambient = vec4(1.0, 0.0, 1.0, 1.0);
+vec4 material_diffuse = vec4(1.0, 0.8, 0.0, 1.0);
+vec4 material_specular = vec4(1.0, 0.8, 0.0, 1.0);
+
+//the vnorm
+attribute vec4 vNorm;
+
+//the trans matrix
+uniform mat4 vctm;
+
 varying vec4 color;
-void main()
+vec4 product(vec4 a, vec4 b)
 {
-  gl_Position = vPosition;
-  color = vColor;
-} 
+    return vec4(a[0]*b[0], a[1]*b[1], a[2]*b[2], a[3]*b[3]);
+}
+void main() 
+{
+    gl_Position = vctm * vPosition;
+    vec4 tmp = normalize(light_position+viewer);
+    vec4 ambient_color = product(material_ambient, light_ambient);
+    float dd = dot(light_position, vctm * vNorm);
+    vec4 diffuse_color, specular_color;
+    if(dd>0.0) diffuse_color = dd*product(light_diffuse, material_diffuse);
+    else diffuse_color =  vec4(0.0, 0.0, 0.0, 1.0);
+    dd = dot(tmp, vctm * vNorm);
+    if(dd > 0.0) specular_color = exp(100.0*log(dd))*product(light_specular, material_specular);
+    else specular_color = vec4(0.0, 0.0, 0.0, 1.0);
+    color = ambient_color + diffuse_color + specular_color;
+}

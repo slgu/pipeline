@@ -734,7 +734,6 @@ mat4 Perspective( const GLfloat fovy, const GLfloat aspect,
 {
     GLfloat top   = tan(fovy*DegreesToRadians/2) * zNear;
     GLfloat right = top * aspect;
-
     mat4 c;
     c[0][0] = zNear/right;
     c[1][1] = zNear/top;

@@ -31,8 +31,6 @@ float posy = 0.0;   // translation along Y
 GLuint buffers[2];
 GLint matrix_loc;
 
-//all vertices to be stored to form triangle
-std::vector <point4> vertices;
 
 // viewer's position, for lighting calculations
 vec4 viewer = vec4(0.0, 0.0, -1.0, 0.0);
@@ -48,12 +46,18 @@ color4 material_diffuse = color4(1.0, 0.8, 0.0, 1.0);
 color4 material_specular = color4(1.0, 0.8, 0.0, 1.0);
 float material_shininess = 100.0;
 
-// we will copy our transformed points to here:
-std::vector <point4> points;
+//all vectices
+std::vector <point4> vertices;
 
-// and we will store the colors, per face per vertex, here. since there is
-// only 1 triangle, with 3 vertices, there will just be 3 here:
-std::vector <color4> colors;
+//all tris
+std::vector <int> tris;
+
+//per vertex per norm
+std::vector <vec4> norms;
+
+//per tri-vertex per norm and point;
+std::vector <point4> points;
+std::vector <vec4> tri_norms;
 
 // a transformation matrix, for the rotation, which we will apply to every
 // vertex:
@@ -68,6 +72,7 @@ vec4 product(vec4 a, vec4 b)
     return vec4(a[0]*b[0], a[1]*b[1], a[2]*b[2], a[3]*b[3]);
 }
 
+GLuint loc, loc2, loc3, loc4, loc5, loc6, loc7, loc8, loc9, loc10;
 
 // transform the triangle's vertex data and put it into the points array.
 // also, compute the lighting at each vertex, and put that into the colors
@@ -75,23 +80,21 @@ vec4 product(vec4 a, vec4 b)
 void tri()
 {
     for (int i = 0; i < vertices.size(); i += 3) {
+        /*
         // compute the lighting at each vertex, then set it as the color there:
         vec3 n1 = normalize(cross(ctm*vertices[i + 1] - ctm*vertices[i],
                               ctm*vertices[i + 2] - ctm*vertices[i + 1]));
         vec4 n = vec4(n1[0], n1[1], n1[2], 0.0);
         vec4 half = normalize(light_position+viewer);
         color4 ambient_color, diffuse_color, specular_color;
-    
         ambient_color = product(material_ambient, light_ambient);
         float dd = dot(light_position, n);
-    
         if(dd>0.0) diffuse_color = dd*product(light_diffuse, material_diffuse);
         else diffuse_color =  color4(0.0, 0.0, 0.0, 1.0);
     
         dd = dot(half, n);
         if(dd > 0.0) specular_color = exp(material_shininess*log(dd))*product(light_specular, material_specular);
         else specular_color = vec4(0.0, 0.0, 0.0, 1.0);
-    
     
         // now transform the vertices according to the ctm transformation matrix,
         // and set the colors for each of them as well. as we are going to give
@@ -104,6 +107,7 @@ void tri()
     
         points[i + 2] = ctm*vertices[i + 2];
         colors[i + 2] = ambient_color + diffuse_color;
+        */
     }
 }
 
@@ -130,11 +134,14 @@ void init()
     // array)
     glGenBuffers(1, buffers);
     glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);  // make it active
-    
     // specify that its part of a VAO, what its size is, and where the
     // data is located, and finally a "hint" about how we are going to use
     // the data (the driver will put it in a good memory location, hopefully)
-    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(point4) + colors.size() * sizeof(color4), NULL, GL_STATIC_DRAW);
+    
+    //send points and tri_norms and ctm first to test
+    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(point4) +
+                 tri_norms.size() * sizeof(tri_norms),
+                 NULL, GL_STATIC_DRAW);
     
     // load in these two shaders...  (note: InitShader is defined in the
     // accompanying initshader.c code).
@@ -148,7 +155,6 @@ void init()
     
     // this time, we are sending TWO attributes through: the position of each
     // transformed vertex, and the color we have calculated in tri().
-    GLuint loc, loc2;
     
     loc = glGetAttribLocation(program, "vPosition");
     glEnableVertexAttribArray(loc);
@@ -157,13 +163,15 @@ void init()
     // beginning of the buffer
     glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
-    loc2 = glGetAttribLocation(program, "vColor");
+    loc2 = glGetAttribLocation(program, "vNorm");
     glEnableVertexAttribArray(loc2);
 
     // the vColor attribute is a series of 4-vecs of floats, starting just after
     // the points in the buffer
     glVertexAttribPointer(loc2, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(points.size() * sizeof(point4)));
-    
+    //the trans matrix
+    loc3 = glGetUniformLocation(program, "vctm");
+    glUniformMatrix4fv(loc3, 1, GL_FALSE, ctm);
     // set the background color (white)
     glClearColor(1.0, 1.0, 1.0, 1.0); 
 }
@@ -172,7 +180,6 @@ void init()
 
 void display( void )
 {
- 
     // clear the window (with white) and clear the z-buffer (which isn't used
     // for this example).
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
@@ -186,7 +193,8 @@ void display( void )
     
     // tell the VBO to get the data from the points arrat and the colors array:
     glBufferSubData( GL_ARRAY_BUFFER, 0, points.size() * sizeof(point4), &points[0]);
-    glBufferSubData( GL_ARRAY_BUFFER, points.size() * sizeof(point4), colors.size() * sizeof(color4), &colors[0]);
+    glBufferSubData( GL_ARRAY_BUFFER, points.size() * sizeof(point4), tri_norms.size() * sizeof(tri_norms), &tri_norms[0]);
+    //send trans matrix to the buffer
     
     // draw the VAO:
     glDrawArrays(GL_TRIANGLES, 0, points.size());
@@ -204,7 +212,6 @@ void display( void )
 // to all the vertices before they are displayed:
 void mouse_move_rotate (int x, int y)
 {
-    
     static int lastx = 0;// keep track of where the mouse was last:
     static int lasty = 0;//keep track of y
     int amntX = x - lastx; 
@@ -223,10 +230,9 @@ void mouse_move_rotate (int x, int y)
         
         lasty = y;
     }
-
+    glUniformMatrix4fv(loc3, 1, GL_FALSE, ctm);
     // force the display routine to be called as soon as possible:
     glutPostRedisplay();
-    
 }
 
 
@@ -278,25 +284,53 @@ int main(int argc, char** argv)
     Parser parser;
     std::vector <int> tris;
     std::vector <float> verts;
+    /*
     if (argc != 2) {
         std::cout << "usage: ./render filename.obj" << std::endl;
         return 1;
     }
     parser.parse_obj_file(argv[1], tris, verts);
+     */
+    
+    parser.parse_obj_file("/Users/slgu1/Desktop/kitten.obj", tris, verts);
+    //push verts
+    for (int i = 0; i < verts.size(); i += 3) {
+        vertices.push_back(point4(verts[i], verts[i + 1], verts[i + 2], 1));
+    }
+    
+    norms.resize(vertices.size());
+    for (int i = 0; i < vertices.size(); ++i) {
+        norms[i] = vec4(0, 0, 0, 0);
+    }
     //set tris and verts to vertices
     for (int i = 0;  i < tris.size(); i += 3) {
         int idxa = tris[i];
         int idxb = tris[i + 1];
         int idxc = tris[i + 2];
-        point4 a(verts[3 * idxa], verts[3 * idxa + 1], verts[3 * idxa + 2], 1);
-        point4 b(verts[3 * idxb], verts[3 * idxb + 1], verts[3 * idxb + 2], 1);
-        point4 c(verts[3 * idxc], verts[3 * idxc + 1], verts[3 * idxc + 2], 1);
-        vertices.push_back(a);
-        vertices.push_back(b);
-        vertices.push_back(c);
+        //cal norm
+        vec3 n = normalize(cross(vertices[idxb] - vertices[idxa],
+                                 vertices[idxc] - vertices[idxb]));
+        std::cout << n << std::endl;
+        norms[idxa] += vec4(n,0);
+        norms[idxb] += vec4(n,0);
+        norms[idxc] += vec4(n,0);
     }
-    points.resize(vertices.size());
-    colors.resize(vertices.size());
+    //normalize
+    for (int i = 0; i < vertices.size(); ++i) {
+        norms[i] = normalize(norms[i]);
+    }
+    //set tri-points
+    for (int i = 0;  i < tris.size(); i += 3) {
+        int idxa = tris[i];
+        int idxb = tris[i + 1];
+        int idxc = tris[i + 2];
+        points.push_back(vertices[idxa]);
+        points.push_back(vertices[idxb]);
+        points.push_back(vertices[idxc]);
+        tri_norms.push_back(norms[idxa]);
+        tri_norms.push_back(norms[idxb]);
+        tri_norms.push_back(norms[idxc]);
+    }
     // initialize glut, and set the display modes
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);

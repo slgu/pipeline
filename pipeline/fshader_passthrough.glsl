@@ -3,11 +3,7 @@
 // just pass them through to the render:
 // 
 // on the mac, you may need to say "varying vec4 color;" instead of this:
-#ifdef linux
-in vec4 color;
-#else
 varying vec4 color;
-#endif
 
 void main() 
 { 
@@ -15,4 +11,3 @@ void main()
   // to set in the fragment shader:
   gl_FragColor = color;
 } 
-
