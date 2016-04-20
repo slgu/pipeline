@@ -33,10 +33,11 @@ GLint matrix_loc;
 
 
 // viewer's position, for lighting calculations
-vec4 viewer = vec4(0.0, 0.0, -1.0, 0.0);
-
+vec4 viewer = vec4(0, 0, -1 ,0);
+mat4 viewtrans;
+mat4 orthtrans;
 // light & material definitions, again for lighting calculations:
-point4 light_position = point4(0.0, 0.0, -1.0, 0.0);
+vec4 light_position = vec4(0, 0, -1 ,0);
 color4 light_ambient = color4(0.2, 0.2, 0.2, 1.0);
 color4 light_diffuse = color4(1.0, 1.0, 1.0, 1.0);
 color4 light_specular = color4(1.0, 1.0, 1.0, 1.0);
@@ -80,34 +81,6 @@ GLuint loc, loc2, loc3, loc4, loc5, loc6, loc7, loc8, loc9, loc10;
 void tri()
 {
     for (int i = 0; i < vertices.size(); i += 3) {
-        /*
-        // compute the lighting at each vertex, then set it as the color there:
-        vec3 n1 = normalize(cross(ctm*vertices[i + 1] - ctm*vertices[i],
-                              ctm*vertices[i + 2] - ctm*vertices[i + 1]));
-        vec4 n = vec4(n1[0], n1[1], n1[2], 0.0);
-        vec4 half = normalize(light_position+viewer);
-        color4 ambient_color, diffuse_color, specular_color;
-        ambient_color = product(material_ambient, light_ambient);
-        float dd = dot(light_position, n);
-        if(dd>0.0) diffuse_color = dd*product(light_diffuse, material_diffuse);
-        else diffuse_color =  color4(0.0, 0.0, 0.0, 1.0);
-    
-        dd = dot(half, n);
-        if(dd > 0.0) specular_color = exp(material_shininess*log(dd))*product(light_specular, material_specular);
-        else specular_color = vec4(0.0, 0.0, 0.0, 1.0);
-    
-        // now transform the vertices according to the ctm transformation matrix,
-        // and set the colors for each of them as well. as we are going to give
-        // flat shading, we will ingore the specular component for now.
-        points[i] = ctm*vertices[i];
-        colors[i] = ambient_color + diffuse_color;
-    
-        points[i + 1] = ctm*vertices[i + 1];
-        colors[i + 1] = ambient_color + diffuse_color;
-    
-        points[i + 2] = ctm*vertices[i + 2];
-        colors[i + 2] = ambient_color + diffuse_color;
-        */
     }
 }
 
@@ -148,7 +121,6 @@ void init()
     // the shaders themselves must be text glsl files in the same directory
     // as we are running this program:
     program = InitShader((shader_dir + "/vshader_passthrough.glsl").c_str(), (shader_dir + "/fshader_passthrough.glsl").c_str());
- 
     // ...and set them to be active
     glUseProgram(program);
     
@@ -172,6 +144,16 @@ void init()
     //the trans matrix
     loc3 = glGetUniformLocation(program, "vctm");
     glUniformMatrix4fv(loc3, 1, GL_FALSE, ctm);
+    
+    vec4 viewdir = normalize(-viewer);
+    vec4 tmp = normalize(cross(viewdir, vec4(0, 1, 0, 0)));
+    vec4 up = normalize(cross(tmp, viewdir));
+    viewtrans = LookAt(viewer, vec4(0, 0, 0, 0), up);
+    loc4 = glGetUniformLocation(program, "viewtrans");
+    glUniformMatrix4fv(loc4, 1, GL_FALSE, viewtrans);
+    orthtrans = Perspective(90, 1, 1, 100);
+    loc5 = glGetUniformLocation(program, "orthtrans");
+    glUniformMatrix4fv(loc5, 1, GL_FALSE, orthtrans);
     // set the background color (white)
     glClearColor(1.0, 1.0, 1.0, 1.0); 
 }
@@ -253,7 +235,6 @@ void mouse_move_translate (int x, int y)
     if (y - lasty > 0) --posy;
     else if (y - lasty < 0) ++posy;
     lasty = y;
-    
     // force the display routine to be called as soon as possible:
     glutPostRedisplay();
 }
@@ -272,6 +253,12 @@ void mykey(unsigned char key, int mousex, int mousey)
         xtheta = 0;
         ytheta = 0;
         glutPostRedisplay();
+    }
+    else if (key == 'x') {
+        
+    }
+    else if (key == 'z') {
+        
     }
 }
 
@@ -310,7 +297,6 @@ int main(int argc, char** argv)
         //cal norm
         vec3 n = normalize(cross(vertices[idxb] - vertices[idxa],
                                  vertices[idxc] - vertices[idxb]));
-        std::cout << n << std::endl;
         norms[idxa] += vec4(n,0);
         norms[idxb] += vec4(n,0);
         norms[idxc] += vec4(n,0);
