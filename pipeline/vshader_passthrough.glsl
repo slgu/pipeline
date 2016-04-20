@@ -8,8 +8,6 @@
 //the position
 attribute vec4 vPosition;
 
-// viewer's position, for lighting calculations
-vec4 viewer = vec4(0, 0, -1 ,0);
 // light & material definitions, again for lighting calculations:
 vec4 light_position = vec4(0, 0, -1 ,0);
 vec4 light_ambient = vec4(0.2, 0.2, 0.2, 1.0);
@@ -24,6 +22,8 @@ vec4 material_specular = vec4(1.0, 0.8, 0.0, 1.0);
 attribute vec4 vNorm;
 
 //the trans matrix
+// viewer's position, for lighting calculations
+uniform vec4 viewer;
 uniform mat4 vctm;
 uniform mat4 viewtrans;
 uniform mat4 orthtrans;
@@ -44,5 +44,5 @@ void main()
     dd = dot(tmp, vctm * vNorm);
     if(dd > 0.0) specular_color = exp(100.0*log(dd))*product(light_specular, material_specular);
     else specular_color = vec4(0.0, 0.0, 0.0, 1.0);
-    color = ambient_color + diffuse_color;// + specular_color;
+    color = ambient_color + diffuse_color + specular_color;
 }

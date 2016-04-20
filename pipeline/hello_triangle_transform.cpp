@@ -19,6 +19,7 @@
 
 #include "amath.h"
 #include "parse.h"
+#include "camera.h"
 std::string shader_dir = "/Users/slgu1/Dropbox/graduate_courses@CU/cg/pipeline/pipeline";
 typedef amath::vec4  point4;
 typedef amath::vec4  color4;
@@ -33,7 +34,7 @@ GLint matrix_loc;
 
 
 // viewer's position, for lighting calculations
-vec4 viewer = vec4(0, 0, -1 ,0);
+vec4 viewer = vec4(0, 0, -5,0);
 mat4 viewtrans;
 mat4 orthtrans;
 // light & material definitions, again for lighting calculations:
@@ -52,7 +53,7 @@ std::vector <point4> vertices;
 
 //all tris
 std::vector <int> tris;
-
+Camera camera;
 //per vertex per norm
 std::vector <vec4> norms;
 
@@ -84,7 +85,14 @@ void tri()
     }
 }
 
-
+void update_viewer() {
+    vec4 viewdir = normalize(-viewer);
+    vec4 tmp = normalize(cross(viewdir, vec4(0, 1, 0, 0)));
+    vec4 up = normalize(cross(tmp, viewdir));
+    viewtrans = LookAt(viewer, vec4(0, 0, 0, 0), up);
+    std::cout << viewtrans << std::endl;
+    glUniformMatrix4fv(loc4, 1, GL_TRUE, viewtrans);
+}
 // initialization: set up a Vertex Array Object (VAO) and then
 void init()
 {
@@ -143,17 +151,20 @@ void init()
     glVertexAttribPointer(loc2, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(points.size() * sizeof(point4)));
     //the trans matrix
     loc3 = glGetUniformLocation(program, "vctm");
-    glUniformMatrix4fv(loc3, 1, GL_FALSE, ctm);
-    
+    glUniformMatrix4fv(loc3, 1, GL_TRUE, ctm);
+    //set viewr
+    viewer = camera.toVec();
     vec4 viewdir = normalize(-viewer);
     vec4 tmp = normalize(cross(viewdir, vec4(0, 1, 0, 0)));
     vec4 up = normalize(cross(tmp, viewdir));
     viewtrans = LookAt(viewer, vec4(0, 0, 0, 0), up);
     loc4 = glGetUniformLocation(program, "viewtrans");
-    glUniformMatrix4fv(loc4, 1, GL_FALSE, viewtrans);
-    orthtrans = Perspective(90, 1, 1, 100);
+    glUniformMatrix4fv(loc4, 1, GL_TRUE, viewtrans);
+    orthtrans = Perspective(40, 1, 1, 50);
     loc5 = glGetUniformLocation(program, "orthtrans");
-    glUniformMatrix4fv(loc5, 1, GL_FALSE, orthtrans);
+    glUniformMatrix4fv(loc5, 1, GL_TRUE, orthtrans);
+    loc6 = glGetUniformLocation(program, "viewer");
+    glUniform4fv(loc6, 1, viewer);
     // set the background color (white)
     glClearColor(1.0, 1.0, 1.0, 1.0); 
 }
@@ -212,7 +223,7 @@ void mouse_move_rotate (int x, int y)
         
         lasty = y;
     }
-    glUniformMatrix4fv(loc3, 1, GL_FALSE, ctm);
+    glUniformMatrix4fv(loc3, 1, GL_TRUE, ctm);
     // force the display routine to be called as soon as possible:
     glutPostRedisplay();
 }
@@ -255,13 +266,20 @@ void mykey(unsigned char key, int mousex, int mousey)
         glutPostRedisplay();
     }
     else if (key == 'x') {
-        
+        camera.r += 1;
+        viewer = camera.toVec();
+        glUniform4fv(loc6, 1, viewer);
+        update_viewer();
+        glutPostRedisplay();
     }
     else if (key == 'z') {
-        
+        camera.r -= 1;
+        viewer = camera.toVec();
+        glUniform4fv(loc6, 1, viewer);
+        update_viewer();
+        glutPostRedisplay();
     }
 }
-
 
 
 int main(int argc, char** argv)
