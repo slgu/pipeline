@@ -9,7 +9,7 @@
 attribute vec4 vPosition;
 
 // light & material definitions, again for lighting calculations:
-vec4 light_position = vec4(0, 0, -1 ,0);
+vec4 light_position = vec4(100, 100, 100, 1);
 vec4 light_ambient = vec4(0.2, 0.2, 0.2, 1.0);
 vec4 light_diffuse = vec4(1.0, 1.0, 1.0, 1.0);
 vec4 light_specular = vec4(1.0, 1.0, 1.0, 1.0);
@@ -34,14 +34,16 @@ vec4 product(vec4 a, vec4 b)
 }
 void main()
 {
-    gl_Position = orthtrans * viewtrans * vctm * vPosition;
-    vec4 tmp = normalize(light_position+viewer);
+    gl_Position = orthtrans * viewtrans * vPosition;
+    vec4 light_dir = normalize(light_position - vPosition);
+    vec4 view_dir = normalize(viewer - vPosition);
+    vec4 hlf = normalize(light_dir+view_dir);
     vec4 ambient_color = product(material_ambient, light_ambient);
-    float dd = dot(light_position, vctm * vNorm);
+    float dd = dot(light_dir, vNorm);
     vec4 diffuse_color, specular_color;
     if(dd>0.0) diffuse_color = dd*product(light_diffuse, material_diffuse);
     else diffuse_color =  vec4(0.0, 0.0, 0.0, 1.0);
-    dd = dot(tmp, vctm * vNorm);
+    dd = dot(hlf, vNorm);
     if(dd > 0.0) specular_color = exp(100.0*log(dd))*product(light_specular, material_specular);
     else specular_color = vec4(0.0, 0.0, 0.0, 1.0);
     color = ambient_color + diffuse_color + specular_color;

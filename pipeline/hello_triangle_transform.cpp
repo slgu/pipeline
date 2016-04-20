@@ -79,18 +79,13 @@ GLuint loc, loc2, loc3, loc4, loc5, loc6, loc7, loc8, loc9, loc10;
 // transform the triangle's vertex data and put it into the points array.
 // also, compute the lighting at each vertex, and put that into the colors
 // array.
-void tri()
-{
-    for (int i = 0; i < vertices.size(); i += 3) {
-    }
-}
+
 
 void update_viewer() {
     vec4 viewdir = normalize(-viewer);
     vec4 tmp = normalize(cross(viewdir, vec4(0, 1, 0, 0)));
     vec4 up = normalize(cross(tmp, viewdir));
     viewtrans = LookAt(viewer, vec4(0, 0, 0, 0), up);
-    std::cout << viewtrans << std::endl;
     glUniformMatrix4fv(loc4, 1, GL_TRUE, viewtrans);
 }
 // initialization: set up a Vertex Array Object (VAO) and then
@@ -182,7 +177,6 @@ void display( void )
 
     // now build transform all the vertices and put them in the points array,
     // and their colors in the colors array:
-    tri();
     
     // tell the VBO to get the data from the points arrat and the colors array:
     glBufferSubData( GL_ARRAY_BUFFER, 0, points.size() * sizeof(point4), &points[0]);
@@ -235,16 +229,14 @@ void mouse_move_rotate (int x, int y)
 // to all the vertices before they are displayed:
 void mouse_move_translate (int x, int y)
 {
-    
     static int lastx = 0;
     static int lasty = 0;  // keep track of where the mouse was last:
-
-    if (x - lastx < 0) --posx;
-    else if (x - lastx > 0) ++posx;
+    camera.lon -= (x - lastx);
+    camera.lat += (y - lasty);
+    viewer = camera.toVec();
+    glUniform4fv(loc6, 1, viewer);
+    update_viewer();
     lastx = x;
-
-    if (y - lasty > 0) --posy;
-    else if (y - lasty < 0) ++posy;
     lasty = y;
     // force the display routine to be called as soon as possible:
     glutPostRedisplay();
@@ -267,6 +259,7 @@ void mykey(unsigned char key, int mousex, int mousey)
     }
     else if (key == 'x') {
         camera.r += 1;
+        std::cout << camera.r << std::endl;
         viewer = camera.toVec();
         glUniform4fv(loc6, 1, viewer);
         update_viewer();
@@ -348,8 +341,9 @@ int main(int argc, char** argv)
     
     // when the mouse is moved, call this function!
     // you can change this to mouse_move_translate to see how it works
-    glutMotionFunc(mouse_move_rotate);
- 
+    //glutMotionFunc(mouse_move_rotate);
+    glutMotionFunc(mouse_move_translate);
+    
     // for any keyboard activity, here is the callback:
     glutKeyboardFunc(mykey);
     

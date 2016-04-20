@@ -17,19 +17,18 @@ public:
     float lat;
     float lon;
     void init() {
-        r = 2;
-        lat = -90;
-        lon = 0;
+        r = 5;
+        lat = 180;
+        lon = 180;
     }
     Camera() {
         init();
     }
     vec4 toVec() {
-        double x = r * cos(lon*PI/180) * sin(lon*PI/180);
+        double x = r * cos(lon*PI/180) * cos(lat*PI/180);
         double y = r * sin(lon*PI/180) * cos(lat*PI/180);
         double z = r * sin(lat*PI/180);
-        std::cout << vec4(x, y, z, 0) << std::endl;
-        return vec4(x, y, z, 0);
+        return vec4(y, z, x, 1);
     }
 };
 #endif /* camera_h */

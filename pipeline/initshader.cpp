@@ -20,7 +20,6 @@ readShaderSource(const char* shaderFile)
 
     buf[size] = '\0';
     fclose(fp);
-
     return buf;
 }
 
