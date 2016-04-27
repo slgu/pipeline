@@ -35,18 +35,12 @@ GLint matrix_loc;
 
 // viewer's position, for lighting calculations
 vec4 viewer = vec4(0, 0, -5,0);
+//view trans
 mat4 viewtrans;
+//orth trans
 mat4 orthtrans;
-// light & material definitions, again for lighting calculations:
-vec4 light_position = vec4(0, 0, -1 ,0);
-color4 light_ambient = color4(0.2, 0.2, 0.2, 1.0);
-color4 light_diffuse = color4(1.0, 1.0, 1.0, 1.0);
-color4 light_specular = color4(1.0, 1.0, 1.0, 1.0);
 
-color4 material_ambient = color4(1.0, 0.0, 1.0, 1.0);
-color4 material_diffuse = color4(1.0, 0.8, 0.0, 1.0);
-color4 material_specular = color4(1.0, 0.8, 0.0, 1.0);
-float material_shininess = 100.0;
+
 
 //all vectices
 std::vector <point4> vertices;
@@ -290,15 +284,13 @@ int main(int argc, char** argv)
     Parser parser;
     std::vector <int> tris;
     std::vector <float> verts;
-    /*
     if (argc != 2) {
-        std::cout << "usage: ./render filename.obj" << std::endl;
+        std::cout << "usage: ./glrender filename.obj" << std::endl;
         return 1;
     }
     parser.parse_obj_file(argv[1], tris, verts);
-     */
     
-    parser.parse_obj_file("/Users/slgu1/Desktop/kitten.obj", tris, verts);
+    //parser.parse_obj_file("/Users/slgu1/Desktop/kitten.obj", tris, verts);
     //push verts
     for (int i = 0; i < verts.size(); i += 3) {
         vertices.push_back(point4(verts[i], verts[i + 1], verts[i + 2], 1));

@@ -9,9 +9,11 @@
 #ifndef parse_h
 #define parse_h
 #include <vector>
+#include "amath.h"
 class Parser {
 public:
     void parse_obj_file (const char * fillnam, std::vector< int > &tris, std::vector< float > &verts);
+    void parse_bazier_surface(const char * filename, std::vector < std::vector < std::vector <vec3> > > & control_point);
 };
 
 #endif /* parse_h */

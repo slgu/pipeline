@@ -102,3 +102,26 @@ void Parser::parse_obj_file (const char * fillnam, std::vector< int > &tris, std
     }
     in.close();
 }
+
+void Parser::parse_bazier_surface(const char * filename, std::vector < std::vector < std::vector <vec3> > > & control_point) {
+    FILE * file_handle;
+    file_handle = fopen (filename,"r");
+    int nsurface;
+    fscanf(file_handle, "%d", &nsurface);
+    control_point.clear();
+    for (int i = 0; i < nsurface; ++i) {
+        int n, m;
+        fscanf(file_handle, "%d %d", &n, &m);
+        std::vector < std::vector <vec3> > surface_ctrl_p;
+        for (int j = 0; j <= m; ++j) {
+            std::vector <vec3> tmp;
+            for (int k = 0; k <= n; ++k) {
+                float x, y, z;
+                fscanf(file_handle, "%lf %lf %lf", &x, &y, &z);
+                tmp.push_back(vec3(x, y, z));
+            }
+            surface_ctrl_p.push_back(tmp);
+        }
+        control_point.push_back(surface_ctrl_p);
+    }
+}

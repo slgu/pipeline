@@ -17,6 +17,7 @@ vec4 light_specular = vec4(1.0, 1.0, 1.0, 1.0);
 vec4 material_ambient = vec4(1.0, 0.0, 1.0, 1.0);
 vec4 material_diffuse = vec4(1.0, 0.8, 0.0, 1.0);
 vec4 material_specular = vec4(1.0, 0.8, 0.0, 1.0);
+float material_shininess = 100.0;
 
 //the vnorm
 attribute vec4 vNorm;
@@ -44,7 +45,7 @@ void main()
     if(dd>0.0) diffuse_color = dd*product(light_diffuse, material_diffuse);
     else diffuse_color =  vec4(0.0, 0.0, 0.0, 1.0);
     dd = dot(hlf, vNorm);
-    if(dd > 0.0) specular_color = exp(100.0*log(dd))*product(light_specular, material_specular);
+    if(dd > 0.0) specular_color = exp(material_shininess*log(dd))*product(light_specular, material_specular);
     else specular_color = vec4(0.0, 0.0, 0.0, 1.0);
     color = ambient_color + diffuse_color + specular_color;
 }
