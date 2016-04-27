@@ -20,6 +20,7 @@
 #include "amath.h"
 #include "parse.h"
 #include "camera.h"
+#include "config.h"
 #include "BazierSurf.hpp"
 std::string shader_dir = "/Users/slgu1/Dropbox/graduate_courses@CU/cg/pipeline/pipeline";
 typedef amath::vec4  point4;
@@ -40,7 +41,7 @@ vec4 viewer = vec4(0, 0, 3, 1);
 mat4 viewtrans;
 //orth trans
 mat4 orthtrans;
-
+int detail_level = INIT_LEVEL;
 
 
 //all vectices
@@ -55,6 +56,9 @@ std::vector <vec4> norms;
 //per tri-vertex per norm and point;
 std::vector <point4> points;
 std::vector <vec4> tri_norms;
+
+three_vec4 pre_norms;
+three_vec4 pre_points;
 
 // a transformation matrix, for the rotation, which we will apply to every
 // vertex:
@@ -85,9 +89,14 @@ void update_viewer() {
 }
 
 // initialization: set up a Vertex Array Object (VAO) and then
-void init()
+void init_shader()
 {
     
+    program = InitShader((shader_dir + "/vshader_passthrough.glsl").c_str(), (shader_dir + "/fshader_passthrough.glsl").c_str());
+    // ...and set them to be active
+    glUseProgram(program);
+}
+void set_buffer() {
     // create a vertex array object - this defines mameory that is stored
     // directly on the GPU
     GLuint vao;
@@ -115,31 +124,28 @@ void init()
                  tri_norms.size() * sizeof(tri_norms),
                  NULL, GL_STATIC_DRAW);
     
-    // load in these two shaders...  (note: InitShader is defined in the
-    // accompanying initshader.c code).
-    // the shaders themselves must be text glsl files in the same directory
-    // as we are running this program:
-    program = InitShader((shader_dir + "/vshader_passthrough.glsl").c_str(), (shader_dir + "/fshader_passthrough.glsl").c_str());
-    // ...and set them to be active
-    glUseProgram(program);
-    
-    
+}
+void set_mesh_vao() {
     // this time, we are sending TWO attributes through: the position of each
     // transformed vertex, and the color we have calculated in tri().
-    
     loc = glGetAttribLocation(program, "vPosition");
     glEnableVertexAttribArray(loc);
-    
     // the vPosition attribute is a series of 4-vecs of floats, starting at the
     // beginning of the buffer
     glVertexAttribPointer(loc, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-
     loc2 = glGetAttribLocation(program, "vNorm");
     glEnableVertexAttribArray(loc2);
-
     // the vColor attribute is a series of 4-vecs of floats, starting just after
     // the points in the buffer
     glVertexAttribPointer(loc2, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(points.size() * sizeof(point4)));
+}
+void update_buffer() {
+    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(point4) +
+                 tri_norms.size() * sizeof(tri_norms),
+                 NULL, GL_STATIC_DRAW);
+    set_mesh_vao();
+}
+void set_pos_change_vao() {
     //the trans matrix
     loc3 = glGetUniformLocation(program, "vctm");
     glUniformMatrix4fv(loc3, 1, GL_TRUE, ctm);
@@ -156,10 +162,18 @@ void init()
     glUniformMatrix4fv(loc5, 1, GL_TRUE, orthtrans);
     loc6 = glGetUniformLocation(program, "viewer");
     glUniform4fv(loc6, 1, viewer);
-    // set the background color (white)
     glClearColor(1.0, 1.0, 1.0, 1.0); 
 }
+void init() {
+    set_buffer();
+    init_shader();
+    set_mesh_vao();
+    set_pos_change_vao();
+}
 
+
+void set_pos_change() {
+}
 
 
 void display( void )
@@ -242,6 +256,46 @@ void mouse_move_translate (int x, int y)
     glutPostRedisplay();
 }
 
+void bazier_to_mesh(int detail) {
+    //return if detail is too low or too high
+    if (detail > MAX_LEVEL)
+        return;
+    if (detail < INIT_LEVEL)
+        return;
+    int coe = MAX_LEVEL / detail;
+    points.clear();
+    tri_norms.clear();
+    int num_of_surs = pre_points.size();
+    for (int i = 0; i < num_of_surs; ++i) {
+        //fill the triangle
+        for (int k = 0; k < detail; ++k)
+            for (int j = 0; j < detail; ++j) {
+                //add left triangle
+                int x[3], y[3];
+                x[0] = k;
+                y[0] = j;
+                x[1] = x[0] + 1;
+                y[1] = y[0];
+                x[2] = x[1];
+                y[2] = y[1] + 1;
+                for(int o = 0; o < 3; ++o)
+                    points.push_back(pre_points[i][x[o] * coe][y[o] * coe]);
+                for(int o = 0; o < 3; ++o)
+                    //push tri norms
+                    tri_norms.push_back(pre_norms[i][x[o] * coe][y[o] * coe]);
+                //add right triangle
+                x[1] = x[0] + 1;
+                y[1] = y[0] + 1;
+                x[2] = x[0];
+                y[2] = y[0] + 1;
+                for(int o = 0; o < 3; ++o)
+                    points.push_back(pre_points[i][x[o] * coe][y[o] * coe]);
+                for(int o = 0; o < 3; ++o)
+                    //push tri norms
+                    tri_norms.push_back(pre_norms[i][x[o] * coe][y[o] * coe]);
+            }
+    }
+}
 
 // the keyboard callback, called whenever the user types something with the
 // regular keys.
@@ -273,6 +327,22 @@ void mykey(unsigned char key, int mousex, int mousey)
         viewer = camera.toVec();
         glUniform4fv(loc6, 1, viewer);
         update_viewer();
+        glutPostRedisplay();
+    }
+    else if(key == '>') {
+        if (detail_level == INIT_LEVEL)
+            return;
+        detail_level /= 2;
+        bazier_to_mesh(detail_level);
+        update_buffer();
+        glutPostRedisplay();
+    }
+    else if(key == '<') {
+        if (detail_level == MAX_LEVEL)
+            return;
+        detail_level *= 2;
+        bazier_to_mesh(detail_level);
+        update_buffer();
         glutPostRedisplay();
     }
 }
@@ -321,9 +391,9 @@ void obj_to_mesh(std::vector <int> & tris, std::vector <float> & verts) {
         tri_norms.push_back(norms[idxc]);
     }
 }
-void bazier_to_mesh(std::vector<std::vector<std::vector<vec3> > > & control_point, int detail) {
-    points.clear();
-    tri_norms.clear();
+void pre_bazier_to_mesh(std::vector<std::vector<std::vector<vec3> > > & control_point) {
+    pre_points.clear();
+    pre_norms.clear();
     int num_of_surs = int(control_point.size());
     for (int i = 0; i < num_of_surs; ++i) {
         int m = int(control_point[i][0].size());
@@ -332,35 +402,23 @@ void bazier_to_mesh(std::vector<std::vector<std::vector<vec3> > > & control_poin
         --m;
         BazierSurf surf;
         surf.init(n, m, control_point[i]);
-        //fill the triangle
-        for (int k = 0; k < detail; ++k)
-            for (int j = 0; j < detail; ++j) {
-                //add left triangle
-                int x[3], y[3];
-                x[0] = k;
-                y[0] = j;
-                x[1] = x[0] + 1;
-                y[1] = y[0];
-                x[2] = x[1];
-                y[2] = y[1] + 1;
-                for(int o = 0; o < 3; ++o)
-                    points.push_back(surf.gen_point(x[o] * 1.0 / detail, y[o] * 1.0 / detail));
-                for(int o = 0; o < 3; ++o)
-                    //push tri norms
-                    tri_norms.push_back(surf.gen_norm(x[o] * 1.0 / detail, y[o] * 1.0 / detail));
-                //add right triangle
-                x[1] = x[0] + 1;
-                y[1] = y[0] + 1;
-                x[2] = x[0];
-                y[2] = y[0] + 1;
-                for(int o = 0; o < 3; ++o)
-                    points.push_back(surf.gen_point(x[o] * 1.0 / detail, y[o] * 1.0 / detail));
-                for(int o = 0; o < 3; ++o)
-                    //push tri norms
-                    tri_norms.push_back(surf.gen_norm(x[o] * 1.0 / detail, y[o] * 1.0 / detail));
+        two_vec4 pre_point;
+        two_vec4 pre_norm;
+        for (int j = 0; j <= MAX_LEVEL; ++j) {
+            one_vec4 tmp_point;
+            one_vec4 tmp_norm;
+            for (int k = 0; k <= MAX_LEVEL; ++k) {
+                tmp_norm.push_back(surf.gen_norm(j * 1.0 / MAX_LEVEL, k * 1.0 / MAX_LEVEL));
+                tmp_point.push_back(surf.gen_point(j * 1.0 / MAX_LEVEL, k * 1.0 / MAX_LEVEL));
             }
+            pre_point.push_back(tmp_point);
+            pre_norm.push_back(tmp_norm);
+        }
+        pre_norms.push_back(pre_norm);
+        pre_points.push_back(pre_point);
     }
 }
+
 int main(int argc, char** argv)
 {
     
@@ -374,14 +432,20 @@ int main(int argc, char** argv)
         return 1;
     }
      */
+    if (argc != 2) {
+        std::cout << "usage: ./glrender bazier_filename" << std::endl;
+        return 1;
+    }
     std::vector<std::vector<std::vector<vec3> > > control_point;
-    parser.parse_bazier_surface("/Users/slgu1/Desktop/tmp", control_point);
-    bazier_to_mesh(control_point, 30);
+    parser.parse_bazier_surface(argv[1], control_point);
+
+    //parse bezier
+    pre_bazier_to_mesh(control_point);
+    bazier_to_mesh(detail_level);
     /*
     parser.parse_obj_file(argv[1], tris, verts);
     obj_to_mesh(tris, verts);
     */
-    //parse bezier
     
     // initialize glut, and set the display modes
     glutInit(&argc, argv);
