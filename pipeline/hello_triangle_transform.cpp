@@ -20,6 +20,7 @@
 #include "amath.h"
 #include "parse.h"
 #include "camera.h"
+#include "BazierSurf.hpp"
 std::string shader_dir = "/Users/slgu1/Dropbox/graduate_courses@CU/cg/pipeline/pipeline";
 typedef amath::vec4  point4;
 typedef amath::vec4  color4;
@@ -275,23 +276,14 @@ void mykey(unsigned char key, int mousex, int mousey)
         glutPostRedisplay();
     }
 }
-
-
-int main(int argc, char** argv)
-{
-    
-    //read obj file
-    Parser parser;
-    std::vector <int> tris;
-    std::vector <float> verts;
-    if (argc != 2) {
-        std::cout << "usage: ./glrender filename.obj" << std::endl;
-        return 1;
-    }
-    parser.parse_obj_file(argv[1], tris, verts);
-    
+//use verts and tris to change to shader object
+void obj_to_mesh(std::vector <int> & tris, std::vector <float> & verts) {
     //parser.parse_obj_file("/Users/slgu1/Desktop/kitten.obj", tris, verts);
     //push verts
+    vertices.clear();
+    norms.clear();
+    tri_norms.clear();
+    points.clear();
     for (int i = 0; i < verts.size(); i += 3) {
         vertices.push_back(point4(verts[i], verts[i + 1], verts[i + 2], 1));
     }
@@ -328,6 +320,72 @@ int main(int argc, char** argv)
         tri_norms.push_back(norms[idxb]);
         tri_norms.push_back(norms[idxc]);
     }
+}
+void bazier_to_mesh(std::vector<std::vector<std::vector<vec3> > > & control_point, int detail) {
+    points.clear();
+    tri_norms.clear();
+    int num_of_surs = control_point.size();
+    for (int i = 0; i < num_of_surs; ++i) {
+        int m = control_point[i][0].size();
+        int n = control_point[i].size();
+        --n;
+        --m;
+        BazierSurf surf;
+        surf.init(n, m, control_point[i]);
+        //fill the triangle
+        for (int i = 0; i < detail; ++i)
+            for (int j = 0; j < detail; ++j) {
+                //add left triangle
+                int ax = i;
+                int ay = j;
+                int bx = ax + 1;
+                int by = ay;
+                int cx = bx;
+                int cy = by + 1;
+                points.push_back(surf.gen_point(ax * 1.0 / detail, ay * 1.0 / detail));
+                points.push_back(surf.gen_point(bx * 1.0 / detail, by * 1.0 / detail));
+                points.push_back(surf.gen_point(cx * 1.0 / detail, cy * 1.0 / detail));
+                //push tri normss
+                tri_norms.push_back(surf.gen_norm(ax * 1.0 / detail, ay * 1.0 / detail));
+                tri_norms.push_back(surf.gen_norm(bx * 1.0 / detail, by * 1.0 / detail));
+                tri_norms.push_back(surf.gen_norm(cx * 1.0 / detail, cy * 1.0 / detail));
+                //add right triangle
+                bx = ax + 1;
+                by = ay + 1;
+                cx = ax;
+                cy = ay + 1;
+                points.push_back(surf.gen_point(ax * 1.0 / detail, ay * 1.0 / detail));
+                points.push_back(surf.gen_point(bx * 1.0 / detail, by * 1.0 / detail));
+                points.push_back(surf.gen_point(cx * 1.0 / detail, cy * 1.0 / detail));
+                //push tri norms
+                tri_norms.push_back(surf.gen_norm(ax * 1.0 / detail, ay * 1.0 / detail));
+                tri_norms.push_back(surf.gen_norm(bx * 1.0 / detail, by * 1.0 / detail));
+                tri_norms.push_back(surf.gen_norm(cx * 1.0 / detail, cy * 1.0 / detail));
+            }
+    }
+}
+int main(int argc, char** argv)
+{
+    
+    //read obj file
+    Parser parser;
+    /*
+    std::vector <int> tris;
+    std::vector <float> verts;
+    if (argc != 2) {
+        std::cout << "usage: ./glrender filename.obj" << std::endl;
+        return 1;
+    }
+     */
+    std::vector<std::vector<std::vector<vec3> > > control_point;
+    parser.parse_bazier_surface("/Users/slgu1/Desktop/tmp", control_point);
+    bazier_to_mesh(control_point, 100);
+    /*
+    parser.parse_obj_file(argv[1], tris, verts);
+    obj_to_mesh(tris, verts);
+    */
+    //parse bezier
+    
     // initialize glut, and set the display modes
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);

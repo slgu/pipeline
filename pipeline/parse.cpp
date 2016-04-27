@@ -116,12 +116,14 @@ void Parser::parse_bazier_surface(const char * filename, std::vector < std::vect
         for (int j = 0; j <= m; ++j) {
             std::vector <vec3> tmp;
             for (int k = 0; k <= n; ++k) {
-                float x, y, z;
+                double x, y, z;
                 fscanf(file_handle, "%lf %lf %lf", &x, &y, &z);
+                //std::cout << x << " " << y << " " << z << std::endl;
                 tmp.push_back(vec3(x, y, z));
             }
             surface_ctrl_p.push_back(tmp);
         }
         control_point.push_back(surface_ctrl_p);
     }
+    fclose(file_handle);
 }

@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "amath.h"
 #include <vector>
+#include <iostream>
 #define MAX_FACTOR 10
 class BazierSurf {
 private:
@@ -31,7 +32,7 @@ private:
         int c = factor[n - i];
         float e = poww(t, i);
         float f = poww(1 - t, n - i);
-        return a / b / c * e * f;
+        return (a / b / c) * e * f;
     }
     float bernstein_der(int n, int i, float t) {
         int a = factor[n];
@@ -50,33 +51,37 @@ public:
     //conrol points
     std::vector < std::vector <vec3> > ctrl_p;
     //generate point given u v
-    vec3 gen_point(float u, float v) {
+    vec4 gen_point(float u, float v) {
         vec3 res(0, 0, 0);
         for (int i = 0; i <= m; ++i)
             for (int j = 0; j <= n; ++j) {
-                res += bernstein(m, i, u) * bernstein(n, j, v) * ctrl_p[i][j];
+                res += bernstein(m, i, u) * bernstein(n, j, v) * ctrl_p[j][i];
             }
-        return res;
+        return vec4(res, 1);
     }
     //generate norm give u v;
-    vec3 gen_norm(float u, float v) {
+    vec4 gen_norm(float u, float v) {
         vec3 der_u(0, 0, 0);
         for (int i = 0; i <= m; ++i)
             for (int j = 0; j <= n; ++j) {
-                der_u += bernstein_der(m, i, u) * bernstein(n, j, v) * ctrl_p[i][j];
+                der_u += bernstein_der(m, i, u) * bernstein(n, j, v) * ctrl_p[j][i];
             }
         vec3 der_v(0, 0, 0);
         for (int i = 0; i <= m; ++i)
             for (int j = 0; j <= n; ++j) {
-                der_v += bernstein(m, i, u) * bernstein_der(n, j, v) * ctrl_p[i][j];
+                der_v += bernstein(m, i, u) * bernstein_der(n, j, v) * ctrl_p[j][i];
             }
-        return normalize(cross(der_u, der_v));
+        return vec4(normalize(cross(der_u, der_v)), 0);
     }
-    void init() {
+    void init(int _n, int _m, std::vector < std::vector <vec3> > & _ctrl_p) {
         //init factor
         factor[0] = 1;
         for (int i = 1; i < MAX_FACTOR; ++i)
             factor[i] = i * factor[i - 1];
+        //copy
+        n = _n;
+        m = _m;
+        ctrl_p = _ctrl_p;
     }
 };
 #endif /* BazierSurf_hpp */
