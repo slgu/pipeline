@@ -13,25 +13,19 @@
 #include "amath.h"
 #include <vector>
 #include <iostream>
-#define MAX_FACTOR 10
+
+#define MAX_FACTOR 15
 class BazierSurf {
 private:
     //calculate bernstein coe
     int factor[MAX_FACTOR];
-    float poww(float t, int times) {
-        if (n == 0)
-            return 1;
-        float res = 1;
-        for (int i = 0; i < times; ++i)
-            res *= t;
-        return res;
-    }
     float bernstein(int n, int i, float t) {
         int a = factor[n];
         int b = factor[i];
         int c = factor[n - i];
-        float e = poww(t, i);
-        float f = poww(1 - t, n - i);
+        //std::cout << i << " " << n << " " << (a / b / c) << std::endl;
+        float e = pow(t, i);
+        float f = pow(1 - t, n - i);
         return (a / b / c) * e * f;
     }
     float bernstein_der(int n, int i, float t) {
@@ -40,10 +34,10 @@ private:
         int c = factor[n - i];
         int combine_coe = a / b / c;
         if (i == 0)
-            return - combine_coe * n * poww(1 - t, n - 1);
+            return -combine_coe * n * pow(1 - t, n - 1);
         if (i == n)
-            return combine_coe * n * poww(t, n - 1);
-        return combine_coe * (i * poww(t, i - 1) * pow(1 - t, n - 1) - (n - i) * pow(1 - t, n - i - 1) * pow(t, i));
+            return combine_coe * n * pow(t, n - 1);
+        return combine_coe * (i * pow(t, i - 1) * pow(1 - t, n - i) - (n - i) * pow(1 - t, n - i - 1) * pow(t, i));
     }
 public:
     //m + 1 n + 1 point
@@ -55,8 +49,10 @@ public:
         vec3 res(0, 0, 0);
         for (int i = 0; i <= m; ++i)
             for (int j = 0; j <= n; ++j) {
+                //std::cout << j << " " << i << " " << ctrl_p[j][i] << std::endl;
                 res += bernstein(m, i, u) * bernstein(n, j, v) * ctrl_p[j][i];
             }
+        //std::cout << res << std::endl;
         return vec4(res, 1);
     }
     //generate norm give u v;
@@ -71,6 +67,7 @@ public:
             for (int j = 0; j <= n; ++j) {
                 der_v += bernstein(m, i, u) * bernstein_der(n, j, v) * ctrl_p[j][i];
             }
+        //std::cout << vec4(normalize(cross(der_u, der_v)), 0) << std::endl;
         return vec4(normalize(cross(der_u, der_v)), 0);
     }
     void init(int _n, int _m, std::vector < std::vector <vec3> > & _ctrl_p) {
@@ -82,6 +79,11 @@ public:
         n = _n;
         m = _m;
         ctrl_p = _ctrl_p;
+        /*
+        for (int i = 0; i < ctrl_p.size(); ++i)
+            for (int j = 0; j < ctrl_p[0].size(); ++j)
+                std::cout << ctrl_p[i][j] << std::endl;
+         */
     }
 };
 #endif /* BazierSurf_hpp */

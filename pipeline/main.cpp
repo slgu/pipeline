@@ -35,7 +35,7 @@ GLint matrix_loc;
 
 
 // viewer's position, for lighting calculations
-vec4 viewer = vec4(0, 0, -5,0);
+vec4 viewer = vec4(0, 0, 3, 1);
 //view trans
 mat4 viewtrans;
 //orth trans
@@ -80,7 +80,7 @@ void update_viewer() {
     vec4 viewdir = normalize(-viewer);
     vec4 tmp = normalize(cross(viewdir, vec4(0, 1, 0, 0)));
     vec4 up = normalize(cross(tmp, viewdir));
-    viewtrans = LookAt(viewer, vec4(0, 0, 0, 0), up);
+    viewtrans = LookAt(viewer, vec4(0, 0, 0, 1), vec4(0, 1, 0, 0));
     glUniformMatrix4fv(loc4, 1, GL_TRUE, viewtrans);
 }
 
@@ -324,43 +324,40 @@ void obj_to_mesh(std::vector <int> & tris, std::vector <float> & verts) {
 void bazier_to_mesh(std::vector<std::vector<std::vector<vec3> > > & control_point, int detail) {
     points.clear();
     tri_norms.clear();
-    int num_of_surs = control_point.size();
+    int num_of_surs = int(control_point.size());
     for (int i = 0; i < num_of_surs; ++i) {
-        int m = control_point[i][0].size();
-        int n = control_point[i].size();
+        int m = int(control_point[i][0].size());
+        int n = int(control_point[i].size());
         --n;
         --m;
         BazierSurf surf;
         surf.init(n, m, control_point[i]);
         //fill the triangle
-        for (int i = 0; i < detail; ++i)
+        for (int k = 0; k < detail; ++k)
             for (int j = 0; j < detail; ++j) {
                 //add left triangle
-                int ax = i;
-                int ay = j;
-                int bx = ax + 1;
-                int by = ay;
-                int cx = bx;
-                int cy = by + 1;
-                points.push_back(surf.gen_point(ax * 1.0 / detail, ay * 1.0 / detail));
-                points.push_back(surf.gen_point(bx * 1.0 / detail, by * 1.0 / detail));
-                points.push_back(surf.gen_point(cx * 1.0 / detail, cy * 1.0 / detail));
-                //push tri normss
-                tri_norms.push_back(surf.gen_norm(ax * 1.0 / detail, ay * 1.0 / detail));
-                tri_norms.push_back(surf.gen_norm(bx * 1.0 / detail, by * 1.0 / detail));
-                tri_norms.push_back(surf.gen_norm(cx * 1.0 / detail, cy * 1.0 / detail));
+                int x[3], y[3];
+                x[0] = k;
+                y[0] = j;
+                x[1] = x[0] + 1;
+                y[1] = y[0];
+                x[2] = x[1];
+                y[2] = y[1] + 1;
+                for(int o = 0; o < 3; ++o)
+                    points.push_back(surf.gen_point(x[o] * 1.0 / detail, y[o] * 1.0 / detail));
+                for(int o = 0; o < 3; ++o)
+                    //push tri norms
+                    tri_norms.push_back(surf.gen_norm(x[o] * 1.0 / detail, y[o] * 1.0 / detail));
                 //add right triangle
-                bx = ax + 1;
-                by = ay + 1;
-                cx = ax;
-                cy = ay + 1;
-                points.push_back(surf.gen_point(ax * 1.0 / detail, ay * 1.0 / detail));
-                points.push_back(surf.gen_point(bx * 1.0 / detail, by * 1.0 / detail));
-                points.push_back(surf.gen_point(cx * 1.0 / detail, cy * 1.0 / detail));
-                //push tri norms
-                tri_norms.push_back(surf.gen_norm(ax * 1.0 / detail, ay * 1.0 / detail));
-                tri_norms.push_back(surf.gen_norm(bx * 1.0 / detail, by * 1.0 / detail));
-                tri_norms.push_back(surf.gen_norm(cx * 1.0 / detail, cy * 1.0 / detail));
+                x[1] = x[0] + 1;
+                y[1] = y[0] + 1;
+                x[2] = x[0];
+                y[2] = y[0] + 1;
+                for(int o = 0; o < 3; ++o)
+                    points.push_back(surf.gen_point(x[o] * 1.0 / detail, y[o] * 1.0 / detail));
+                for(int o = 0; o < 3; ++o)
+                    //push tri norms
+                    tri_norms.push_back(surf.gen_norm(x[o] * 1.0 / detail, y[o] * 1.0 / detail));
             }
     }
 }
@@ -379,7 +376,7 @@ int main(int argc, char** argv)
      */
     std::vector<std::vector<std::vector<vec3> > > control_point;
     parser.parse_bazier_surface("/Users/slgu1/Desktop/tmp", control_point);
-    bazier_to_mesh(control_point, 100);
+    bazier_to_mesh(control_point, 30);
     /*
     parser.parse_obj_file(argv[1], tris, verts);
     obj_to_mesh(tris, verts);
