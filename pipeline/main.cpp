@@ -36,18 +36,19 @@ GLint matrix_loc;
 
 
 // viewer's position, for lighting calculations
-vec4 viewer = vec4(0, 0, 3, 1);
+vec4 viewer = vec4(-1.33808, 2.5, 4.1182, 1);
 //view trans
 mat4 viewtrans;
 //orth trans
 mat4 orthtrans;
 int detail_level = INIT_LEVEL;
-
+bool ftype;
 
 //all vectices
 std::vector <point4> vertices;
 
 //all tris
+std::vector <float> verts;
 std::vector <int> tris;
 Camera camera;
 //per vertex per norm
@@ -329,21 +330,26 @@ void mykey(unsigned char key, int mousex, int mousey)
         update_viewer();
         glutPostRedisplay();
     }
-    else if(key == '>') {
-        if (detail_level == INIT_LEVEL)
-            return;
-        detail_level /= 2;
-        bazier_to_mesh(detail_level);
-        update_buffer();
-        glutPostRedisplay();
-    }
-    else if(key == '<') {
-        if (detail_level == MAX_LEVEL)
-            return;
-        detail_level *= 2;
-        bazier_to_mesh(detail_level);
-        update_buffer();
-        glutPostRedisplay();
+    else {
+        //if bazier opt
+        if (ftype == false) {
+            if(key == '>') {
+                if (detail_level == INIT_LEVEL)
+                    return;
+                detail_level /= 2;
+                bazier_to_mesh(detail_level);
+                update_buffer();
+                glutPostRedisplay();
+            }
+            else if(key == '<') {
+                if (detail_level == MAX_LEVEL)
+                    return;
+                detail_level *= 2;
+                bazier_to_mesh(detail_level);
+                update_buffer();
+                glutPostRedisplay();
+            }
+        }
     }
 }
 //use verts and tris to change to shader object
@@ -433,18 +439,35 @@ int main(int argc, char** argv)
     }
      */
     if (argc != 2) {
-        std::cout << "usage: ./glrender bazier_filename" << std::endl;
+        std::cout << "usage: ./glrender filename.txt/filename.obj" << std::endl;
         return 1;
     }
-    std::vector<std::vector<std::vector<vec3> > > control_point;
-    parser.parse_bazier_surface(argv[1], control_point);
-
-    //parse bezier
-    pre_bazier_to_mesh(control_point);
-    bazier_to_mesh(detail_level);
-    /*
-    parser.parse_obj_file(argv[1], tris, verts);
-    obj_to_mesh(tris, verts);
+    std::string filename(argv[1]);
+    int l = filename.length();
+    if(l < 4) {
+        std::cout << "filename is not obj or txt" << std::endl;
+        return 1;
+    }
+    std::string filetype = filename.substr(l - 4, 4);
+    if (filetype != ".obj" && filetype != ".txt") {
+        std::cout << "filename is not obj or txt" << std::endl;
+        return 1;
+    }
+    if (filetype == ".txt") {
+        std::vector<std::vector<std::vector<vec3> > > control_point;
+        parser.parse_bazier_surface(argv[1], control_point);
+        //parse bezier
+        pre_bazier_to_mesh(control_point);
+        bazier_to_mesh(detail_level);
+        ftype = false;
+    }
+    else {
+        parser.parse_obj_file(argv[1], tris, verts);
+        obj_to_mesh(tris, verts);
+        ftype = true;
+    }
+    
+      /*
     */
     
     // initialize glut, and set the display modes
