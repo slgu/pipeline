@@ -33,7 +33,7 @@ float posy = 0.0;   // translation along Y
 
 GLuint buffers[2];
 GLint matrix_loc;
-
+int checkboard_detail = 5;
 
 // viewer's position, for lighting calculations
 vec4 viewer = vec4(-1.33808, 2.5, 4.1182, 1);
@@ -41,9 +41,9 @@ vec4 viewer = vec4(-1.33808, 2.5, 4.1182, 1);
 mat4 viewtrans;
 //orth trans
 mat4 orthtrans;
-int detail_level = INIT_LEVEL;
+int detail_level = MAX_LEVEL;
 bool ftype;
-
+int shader_type = 1;
 //all vectices
 std::vector <point4> vertices;
 
@@ -163,6 +163,10 @@ void set_pos_change_vao() {
     glUniformMatrix4fv(loc5, 1, GL_TRUE, orthtrans);
     loc6 = glGetUniformLocation(program, "viewer");
     glUniform4fv(loc6, 1, viewer);
+    loc7 = glGetUniformLocation(program, "shader_type");
+    glUniform1i(loc7, shader_type);
+    loc8 = glGetUniformLocation(program, "detail");
+    glUniform1i(loc8, checkboard_detail);
     glClearColor(1.0, 1.0, 1.0, 1.0); 
 }
 void init() {
@@ -330,6 +334,26 @@ void mykey(unsigned char key, int mousex, int mousey)
         update_viewer();
         glutPostRedisplay();
     }
+    else  if (key == 'g') {
+        if (checkboard_detail <= 3)
+            return;
+        --checkboard_detail;
+        glUniform1i(loc8, checkboard_detail);
+        glutPostRedisplay();
+    }
+    else if (key == 't') {
+        if (checkboard_detail >= 10)
+            return;
+        ++checkboard_detail;
+        glUniform1i(loc8, checkboard_detail);
+        glutPostRedisplay();
+    }
+    else if (key == 's') {
+        shader_type = 1 - shader_type;
+        glUniform1i(loc7, shader_type);
+        glutPostRedisplay();
+    }
+    
     else {
         //if bazier opt
         if (ftype == false) {
